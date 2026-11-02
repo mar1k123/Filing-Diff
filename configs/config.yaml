@@ -1,0 +1,41 @@
+edgar:
+  user_agent: "FilingDiffResearch/1.0 (research@example.org)"
+  rate_limit_requests_per_sec: 5.0
+  cache_dir: ".cache/edgar"
+  request_timeout_sec: 30
+
+sections:
+  10-K:
+    risk_factors: "Item 1A"
+    mda: "Item 7"
+  10-Q:
+    risk_factors: "Item 1A"
+    mda: "Item 2"
+
+alignment:
+  embedding_model: "all-MiniLM-L6-v2"
+  unchanged_threshold: 0.88
+  reworded_threshold: 0.55
+  min_paragraph_chars: 80
+
+llm:
+  model_name: "gemini-2.5-flash"
+  max_paragraphs_per_run: 25
+  temperature: 0.1
+
+event_study:
+  default_tickers:
+    - "AAPL"
+    - "MSFT"
+    - "NVDA"
+    - "AMZN"
+    - "GOOGL"
+    - "META"
+    - "TSLA"
+    - "JPM"
+    - "LLY"
+    - "XOM"
+    - "UNH"
+    - "AVGO"
+  trading_days_post_filing: 63
+  annualization_factor: 252

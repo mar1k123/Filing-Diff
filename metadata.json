@@ -1,0 +1,6 @@
+{
+  "name": "filing-diff — SEC 10-K/10-Q Semantic Diff & Risk Materiality Analyzer",
+  "description": "Compares consecutive SEC 10-K and 10-Q filings to surface material language changes in Risk Factors and MD&A using embedding alignment, Gemini structured analysis, and exploratory volatility event studies.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
