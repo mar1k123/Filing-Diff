@@ -244,9 +244,10 @@ async function startServer() {
     }
   });
 
-  // 3. Serve Python 3.10+ Project Files from Disk
+  // 3. Serve Python 3.10+ & Desktop Project Files from Disk
   app.get('/api/project-files', async (_req, res) => {
     const filePaths = [
+      'README.md',
       'requirements.txt',
       'configs/config.yaml',
       'src/__init__.py',
@@ -256,8 +257,9 @@ async function startServer() {
       'src/llm_analysis.py',
       'src/event_study.py',
       'src/app.py',
+      'src/desktop.py',
+      'electron/main.cjs',
       'tests/test_filing_diff.py',
-      'README.md',
     ];
     try {
       const files = await Promise.all(

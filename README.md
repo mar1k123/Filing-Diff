@@ -1,14 +1,61 @@
-# filing-diff: SEC 10-K/10-Q Semantic Diff & Risk Materiality Analyzer
+<div align="center">
+
+# filing-diff
+
+### SEC 10-K / 10-Q Semantic Diff, Risk Materiality Analyzer & Exploratory Event Study
+
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-0f172a?style=flat-square&logo=python&logoColor=white)](#4-installation--pc-desktop-setup)
+[![Pydantic v2](https://img.shields.io/badge/Pydantic-v2_Strict_JSON-059669?style=flat-square)](#1-overview--architecture)
+[![SEC EDGAR Fair Access](https://img.shields.io/badge/SEC_EDGAR-Rate_Limited_%E2%89%A45_req%2Fs-1e293b?style=flat-square)](#1-overview--architecture)
+[![Desktop App](https://img.shields.io/badge/Platform-Windows_%7C_macOS_%7C_Linux-2563eb?style=flat-square)](#4-installation--pc-desktop-setup)
+
+*Compare consecutive SEC 10-K and 10-Q disclosures via paragraph embedding similarity, surface material shifts in **Item 1A (Risk Factors)** and **Item 7 (MD&A)** using structured LLM schemas, and run exploratory post-filing volatility event studies.*
+
+</div>
+
+---
 
 > **Disclaimer — Not Financial Advice**: `filing-diff` is an open-source research and document-engineering tool designed to inspect textual changes between consecutive SEC EDGAR filings. Nothing in this repository, its outputs, LLM summaries, materiality scores, or exploratory event study constitutes financial, investment, legal, or accounting advice.
 
 ---
 
+## Interface Gallery (PC Desktop Application)
+
+### 1. Filing Diff Workbench & SEC EDGAR Ingestion Controls
+![Filing Diff Workbench](docs/images/diff-workbench.png)
+
+### 2. Ranked Materiality Table & Color-Coded Side-by-Side Paragraph Diff
+![Side-by-Side Paragraph Diff](docs/images/side-by-side-diff.png)
+
+### 3. Exploratory Volatility Event Study & Outlier Sensitivity Analysis
+![Exploratory Event Study](docs/images/event-study.png)
+
+### 4. Standalone PC Desktop Packaging (`.exe` / `.app` / Electron)
+![PC Desktop Build Modal](docs/images/desktop-modal.png)
+
+---
+
 ## 1. Overview & Architecture
 
-Corporate 10-K and 10-Q filings often span 80–250 pages with extensive year-over-year boilerplate. Investors, compliance analysts, and researchers frequently need to isolate **meaningful shifts in risk posture** inside **Item 1A (Risk Factors)** and **Item 7 / Item 2 (Management's Discussion and Analysis, or MD&A)**.
+Corporate 10-K and 10-Q filings often span 80–250 pages with extensive year-over-year boilerplate. Analysts and researchers need to isolate **meaningful shifts in risk posture** inside **Item 1A (Risk Factors)** and **Item 7 / Item 2 (Management's Discussion and Analysis, or MD&A)**.
 
-`filing-diff` automates this workflow across five modular stages:
+```text
+┌───────────────────────────┐     ┌─────────────────────────────┐     ┌──────────────────────────────┐
+│  1. SEC EDGAR Ingestion   │     │   2. Embedding Alignment    │     │  3. Gemini Structured JSON   │
+│  • Ticker -> 10-digit CIK │────▶│  • sentence-transformers    │────▶│  • Pydantic v2 Schema        │
+│  • User-Agent + Rate Limit│     │    (all-MiniLM-L6-v2)       │     │  • Topic & Caution Direction │
+│  • BeautifulSoup Item 1A/7│     │  • Greedy Cosine Matching   │     │  • Materiality Score (1..5)  │
+│  • Disk Cache (.cache/)   │     │  • Added/Removed/Reworded   │     │  • Epistemic Humility Guard  │
+└───────────────────────────┘     └──────────────┬──────────────┘     └──────────────┬───────────────┘
+                                                 │                                   │
+                                                 ▼                                   ▼
+                                  ┌─────────────────────────────┐     ┌──────────────────────────────┐
+                                  │ 4. Exploratory Event Study  │     │   5. PC Desktop Workbench    │
+                                  │  • New Risk Language Ratio  │     │  • Ranked Materiality Table  │
+                                  │  • 63d Post-Filing Vol (yf) │     │  • Color-Coded Side-by-Side  │
+                                  │  • Pearson r, Spearman rho  │     │  • Topic & Category Filters  │
+                                  └─────────────────────────────┘     └──────────────────────────────┘
+```
 
 1. **EDGAR Ingestion & Local Caching (`src/ingestion.py`)**:
    - Resolves ticker symbols to 10-digit zero-padded CIKs via `https://www.sec.gov/files/company_tickers.json`.
@@ -33,10 +80,7 @@ Corporate 10-K and 10-Q filings often span 80–250 pages with extensive year-ov
      - `summary` (`str`): Single-sentence plain-language explanation.
      - `is_uncertain` (`bool`): Explicit epistemic humility flag—when context is truncated or ambiguous, the model sets `is_uncertain=True` and `direction="uncertain"` rather than guessing.
 
-4. **Streamlit UI (`src/app.py`)**:
-   - Renders KPI metrics, topic and category filters, a ranked table of **Most Material Changes**, a color-coded side-by-side paragraph diff viewer, and the interactive exploratory event study tab.
-
-5. **Exploratory Event Study Module (`src/event_study.py`)**:
+4. **Exploratory Event Study Module (`src/event_study.py`)**:
    - Computes the **New Risk Language Ratio** for each ticker:
      $$\text{NewRiskRatio}_N = \frac{\sum_{p \in \text{Added}} \text{words}(p) + \sum_{p \in \text{Reworded}} \text{words}(p) \cdot \max(0.15, 1 - \text{sim}(p))}{\sum_{p \in \text{Period } N} \text{words}(p)}$$
    - Pulls daily adjusted close prices post-filing via `yfinance` over $T = 63$ trading days (~1 quarter) and computes realized annualized log-return volatility:
@@ -51,6 +95,14 @@ Corporate 10-K and 10-Q filings often span 80–250 pages with extensive year-ov
 .
 ├── configs/
 │   └── config.yaml                  # EDGAR User-Agent, rate limits, alignment thresholds, LLM & cohort config
+├── docs/
+│   └── images/                      # High-resolution desktop UI screenshots
+│       ├── diff-workbench.png
+│       ├── side-by-side-diff.png
+│       ├── event-study.png
+│       └── desktop-modal.png
+├── electron/
+│   └── main.cjs                     # Native Electron desktop window wrapper for the full workbench
 ├── src/
 │   ├── __init__.py                  # Package initialization
 │   ├── models.py                    # Pydantic v2 schemas (ParagraphAnalysis, AlignedParagraphPair, EventStudyResult)
@@ -58,13 +110,14 @@ Corporate 10-K and 10-Q filings often span 80–250 pages with extensive year-ov
 │   ├── alignment.py                 # sentence-transformers cosine alignment & New Risk Language Ratio math
 │   ├── llm_analysis.py              # Google Gemini (google-genai) structured output analyzer with uncertainty guardrails
 │   ├── event_study.py               # Exploratory volatility correlation tester using yfinance & scipy.stats
-│   └── app.py                       # Streamlit UI (side-by-side diff, ranked material changes, topic filter, event study)
+│   ├── app.py                       # Desktop-styled Streamlit UI (side-by-side diff, ranked material changes, event study)
+│   └── desktop.py                   # Standalone Python PC window launcher (pywebview + PyInstaller .exe support)
 ├── scripts/
 │   └── generate_readme_metrics.ts   # Reproducible script that computes the empirical metrics reported below
 ├── tests/
 │   └── test_filing_diff.py          # Pytest unit test suite covering ingestion, alignment, Pydantic schemas & stats
-├── requirements.txt                 # Python 3.10+ package dependencies
-└── README.md                        # Methodology, script-generated results, limitations & disclaimer
+├── requirements.txt                 # Python 3.10+ package dependencies (including pywebview & pyinstaller)
+└── README.md                        # Visual gallery, installation guide, script-generated results & limitations
 ```
 
 ---
@@ -95,7 +148,57 @@ Executed via `evaluateEventStudyCohort(VERIFIED_EVENT_STUDY_COHORT)` in `scripts
 
 ---
 
-## 4. Methodology Limitations & Warnings Against Over-Interpretation
+## 4. Installation & PC Desktop Setup
+
+You can run `filing-diff` as a **standalone native PC desktop program** (Windows `.exe`, macOS `.app`, or Linux desktop window) or in standard local development mode.
+
+### Option A: Python 3.10+ Native Desktop App & Standalone `.exe` Build
+
+```bash
+# 1. Create and activate a virtual environment
+python -m venv .venv
+source .venv/bin/activate        # Windows PowerShell: .\.venv\Scripts\Activate.ps1
+
+# 2. Install Python dependencies (includes Streamlit, pywebview, PyInstaller, google-genai)
+pip install -r requirements.txt
+
+# 3. Configure environment variables
+export GEMINI_API_KEY="your_gemini_api_key"
+export SEC_USER_AGENT="YourOrg/1.0 (your.email@domain.com)"
+
+# 4. Launch directly inside a native OS desktop window (no browser tab required)
+python -m src.desktop
+
+# 5. (Optional) Package into a standalone Windows .exe or macOS .app bundle
+pyinstaller --noconfirm --onedir --windowed --name "FilingDiff" src/desktop.py
+```
+
+### Option B: Full React + Express Workbench in Native Electron Window
+
+```bash
+# 1. Install Node.js dependencies
+npm install
+
+# 2. Start the local backend + workbench server on port 3000
+npm run dev
+
+# 3. In a second terminal, open the native Electron desktop window
+npx electron electron/main.cjs
+```
+
+### Option C: Run Unit Tests (Python & TypeScript)
+
+```bash
+# Run Python pytest suite
+pytest tests/test_filing_diff.py
+
+# Run TypeScript pure-logic alignment & event study tests
+npx --yes tsx --test src/utils/filingDiffEngine.test.ts
+```
+
+---
+
+## 5. Methodology Limitations & Warnings Against Over-Interpretation
 
 1. **Small Sample Size & Cross-Sectional Confounding**:
    In a small cross-sectional cohort ($N = 12$), higher-beta technology and semiconductor issuers (e.g., `NVDA`, `TSLA`, `AVGO`) naturally exhibit both faster product/regulatory turnover in their 10-K Risk Factors and higher baseline equity volatility than mature financials or energy issuers (`JPM`, `XOM`). Consequently, the observed positive correlation ($r = 0.7008, p = 0.0111$) largely reflects **uncontrolled sector beta and baseline idiosyncratic volatility** rather than a causal shock from the filing text itself.
@@ -105,22 +208,3 @@ Executed via `evaluateEventStudyCohort(VERIFIED_EVENT_STUDY_COHORT)` in `scripts
    SEC registrants use non-standardized HTML/iXBRL layouts. Regex boundary extraction between `Item 1A` and `Item 1B`/`Item 2` can occasionally include or exclude transitional headers in atypical filings.
 4. **Preventative Legal Boilerplate**:
    Corporate securities counsel routinely adds precautionary risk language in response to SEC comment letters or industry-wide events (e.g., cybersecurity rules or AI legislation) even when firm-specific exposure has not materially changed.
-
----
-
-## 5. Quickstart (Python 3.10+ & Streamlit)
-
-```bash
-# 1. Install dependencies
-pip install -r requirements.txt
-
-# 2. Configure environment variables
-export GEMINI_API_KEY="your-gemini-api-key"
-export SEC_USER_AGENT="YourOrganization/1.0 (your.email@domain.com)"
-
-# 3. Run unit tests
-pytest tests/test_filing_diff.py
-
-# 4. Launch Streamlit application
-streamlit run src/app.py
-```
